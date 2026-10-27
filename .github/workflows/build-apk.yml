@@ -22,21 +22,30 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Show project structure
+      - name: Fix macOS Java home configuration
+        shell: bash
         run: |
-          echo "Root files:"
-          ls -la
-          echo "Gradle files:"
-          find . -maxdepth 3 \( -name build.gradle -o -name build.gradle.kts -o -name settings.gradle -o -name settings.gradle.kts \) -print
+          if [ -f gradle.properties ]; then
+            sed -i '/^[[:space:]]*org\.gradle\.java\.home[[:space:]]*=/d' gradle.properties
+          fi
+
+          find . -name gradle.properties \
+            -not -path './.git/*' \
+            -not -path './.gradle/*' \
+            -exec sed -i '/^[[:space:]]*org\.gradle\.java\.home[[:space:]]*=/d' {} +
+
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version
 
       - name: Make Gradle executable
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew --no-daemon assembleDebug --stacktrace
 
-      - name: Upload generated APK files
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: NotiBridge-APK
